@@ -10,7 +10,9 @@ namespace MovieLibrary.Dao
     /// A business logic implementation layer used to hide potential complexities from the database layer.
     /// Also takes away user interaction from the database layer.
     /// 
-    /// All "get" with the datalayer result in either instanced entity objects, or Lists.
+    /// All "get" operations on the datalayer result in either instanced entity objects, or Lists.
+    /// 
+    /// This class became bogged down with business logic, and given additional time I would look for ways to isolate and remove some of that to preserve Single Responsibility
     /// </summary>
     public class MovieRepository : IMovieRepository
     {
