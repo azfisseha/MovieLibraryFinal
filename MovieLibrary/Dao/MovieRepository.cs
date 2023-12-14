@@ -12,7 +12,9 @@ namespace MovieLibrary.Dao
     /// 
     /// All "get" operations on the datalayer result in either instanced entity objects, or Lists.
     /// 
-    /// This class became bogged down with business logic, and given additional time I would look for ways to isolate and remove some of that to preserve Single Responsibility
+    /// This class became bogged down with business logic, and given additional time I would look for ways to isolate and remove some of that to preserve Single Responsibility.
+    /// I was held back by the idea of not having addtional services that also had access to the data layer - I couldn't find a way to move, i.e. the TopRatedByX logic into a "IRatingsService"
+    /// without that service also needing access to the datalayer.  In the interest of not allowing that, I let this class grow into the monstrosity that you see before you.
     /// </summary>
     public class MovieRepository : IMovieRepository
     {
