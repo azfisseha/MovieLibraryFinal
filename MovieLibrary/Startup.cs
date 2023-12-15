@@ -17,7 +17,7 @@ namespace MovieLibrary
 
             services.AddLogging(builder =>
             {
-                builder.AddConsole();
+                //builder.AddConsole();
                 builder.AddFile("app.log");
             });
 

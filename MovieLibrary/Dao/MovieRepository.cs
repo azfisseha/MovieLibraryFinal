@@ -54,7 +54,10 @@ namespace MovieLibrary.Dao
                 _logger.LogInformation("\n{movies} Movies found with this search.\nPrinting...", movies.Count());
 
                 _outputService.WriteLine($"Your movies are: ");
-                movies.ToList().ForEach(x => _outputService.WriteLine($"{x.ToString()}"));
+                movies.ToList().ForEach(x => {
+                    _outputService.WriteLine($"{x.ToString()}");
+                    _outputService.WriteLine($"{string.Join(", ", x.MovieGenres.Select(y => y.Genre.Name).ToList())}");
+                    });
             }
             _logger.LogInformation("\nReturning to Menu...");
 
