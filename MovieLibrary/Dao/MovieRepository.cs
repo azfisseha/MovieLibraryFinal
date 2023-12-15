@@ -12,9 +12,11 @@ namespace MovieLibrary.Dao
     /// 
     /// All "get" operations on the datalayer result in either instanced entity objects, or Lists.
     /// 
-    /// This class became bogged down with business logic, and given additional time I would look for ways to isolate and remove some of that to preserve Single Responsibility.
+    /// This class became bogged down with business logic. My next goal would be to look for ways to isolate and remove some of that to preserve Single Responsibility.
     /// I was held back by the idea of not having addtional services that also had access to the data layer - I couldn't find a way to move, i.e. the TopRatedByX logic into a "IRatingsService"
     /// without that service also needing access to the datalayer.  In the interest of not allowing that, I let this class grow into the monstrosity that you see before you.
+    /// 
+    /// Additionally, my input validation went out of control and should definitely not be as lengthy as it is...
     /// </summary>
     public class MovieRepository : IMovieRepository
     {
@@ -33,33 +35,33 @@ namespace MovieLibrary.Dao
 
         public void SearchMovie()
         {
-            _logger.LogInformation("Searching...");
+            _logger.LogInformation("\nSearching...");
             _outputService.WriteLine("Enter the title substring to search for (case-insensitive)");
 
             var searchString = _inputService.ReadLine();
-            _logger.LogInformation("User submitted searchString: \"{searchString}\"", searchString);
+            _logger.LogInformation("\nUser submitted searchString: \"{searchString}\"", searchString);
 
             var movies = _repository.Search(searchString);
-            _logger.LogInformation("Searching Library...");
+            _logger.LogInformation("\nSearching Library...");
 
             if (!movies.Any())
             {
-                _logger.LogInformation("No movie found.");
+                _logger.LogError("\nNo movie found with searchString {searchString}", searchString);
                 _outputService.WriteLine("No movie found.");
             }
             else
             {
-                _logger.LogInformation("{movies} Movies found with this search.\nPrinting...", movies.Count());
+                _logger.LogInformation("\n{movies} Movies found with this search.\nPrinting...", movies.Count());
 
                 _outputService.WriteLine($"Your movies are: ");
                 movies.ToList().ForEach(x => _outputService.WriteLine($"{x.ToString()}"));
             }
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
 
         }
         public void AddMovie()
         {
-            _logger.LogInformation("Adding a Movie...");
+            _logger.LogInformation("\nAdding a Movie...");
 
             string title = "";
             do
@@ -71,23 +73,23 @@ namespace MovieLibrary.Dao
 
             var releaseDate = GetReleaseDateFromUser("Enter Release Date (MM/DD/YYYY): ");
             var releaseDateString = releaseDate.ToString("MM/dd/yyyy");
-            _logger.LogInformation("User submitted release date: \"{releaseDate}\"", releaseDate);
+            _logger.LogInformation("\nUser submitted release date: \"{releaseDate}\"", releaseDate);
 
 
             if (releaseDate > DateTime.UtcNow)
             {
-                _logger.LogInformation("User submitted an invalid release date: \"{releaseDate}\"", releaseDate);
-                _logger.LogInformation("Returning to Menu...");
+                _logger.LogError("\nUser submitted an invalid release date: \"{releaseDate}\"", releaseDate);
+                _logger.LogInformation("\nReturning to Menu...");
                 _outputService.WriteLine("Returning to Menu...");
                 return;
             }
 
-            _logger.LogInformation("Getting Genres to Add...");
+            _logger.LogInformation("\nGetting Genres to Add...");
 
 
             var validGenres = _repository.GetAllGenres();
             var validGenresString = string.Join(", ", validGenres.Select(x => x.Name));
-            _logger.LogInformation("Valid Genres: {validGenresString}\n", validGenresString);
+            _logger.LogInformation("\nValid Genres: {validGenresString}\n", validGenresString);
             _outputService.WriteLine("Genres: " + string.Join(", ", validGenres.Select(x => x.Name)) + "\n");
 
             var genres = new List<String>();
@@ -101,7 +103,7 @@ namespace MovieLibrary.Dao
                 {
                     if (genres.Count == 0)
                     {
-                        _logger.LogInformation("User attempted to create movie with no genres");
+                        _logger.LogError("\nUser attempted to create movie with no genres");
                         _outputService.WriteLine("Enter at least one Genre to continue");
                     }
                     else
@@ -111,27 +113,27 @@ namespace MovieLibrary.Dao
                 }
                 else if (validGenres.SingleOrDefault(x => x.Name == input) == null)
                 {
-                    _logger.LogInformation("User attempted to add a genre that does not exist to this movie: {input}", input);
+                    _logger.LogError("\nUser attempted to add a genre that does not exist to this movie: {input}", input);
                     _outputService.WriteLine($"{input} does not match an existing Genre.");
                 }
                 else
                 {
-                    _logger.LogInformation("User added {input} to the Genres of this Movie.", input);
+                    _logger.LogInformation("\nUser added {input} to the Genres of this Movie.", input);
                     genres.Add(input);
                 }
             } while (addtlGenres);
 
-            _logger.LogInformation("Sending Movie to Library...");
+            _logger.LogInformation("\nSending Movie to Library...");
             var id = _repository.AddMovie(title, genres, releaseDate);
 
-            _logger.LogInformation("Added {title} to the Library.  ID#:{id}", title, id);
+            _logger.LogInformation("\nAdded {title} to the Library.  ID#:{id}", title, id);
             _outputService.WriteLine($"Added {title} to the Library.  ID#:{id}");
 
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
         }
         public void ListMovies()
         {
-            _logger.LogInformation("Listing Movies...");
+            _logger.LogInformation("\nListing Movies...");
             _outputService.WriteLine($"{"Id",-5} | {"Title",-40} | {"Released",-10} | Genres ");
             var entry = 0;
 
@@ -152,60 +154,62 @@ namespace MovieLibrary.Dao
                 }
                 next10 = movies.Skip(entry).Take(10);
 
-                _logger.LogInformation("Displayed {entry} entries...", entry);
+                _logger.LogInformation("\nDisplayed {entry} entries...", entry);
 
                 if (movies.Count() < entry + 10 || !ContinueDisplaying())
                 {
                     if (movies.Count() < entry + 10)
-                        _logger.LogInformation("Reached end of Library.");
+                        _logger.LogInformation("\nReached end of Library.");
                     else
-                        _logger.LogInformation("User chose to stop displaying Movies");
+                        _logger.LogInformation("\nUser chose to stop displaying Movies");
 
-                    _logger.LogInformation("Returning to Menu...");
+                    _logger.LogInformation("\nReturning to Menu...");
                     break;
                 }
             }
         }
         public void UpdateMovie()
         {
-            _logger.LogInformation("Updating a Movie...");
+            _logger.LogInformation("\nUpdating a Movie...");
 
             var id = GetIDFromUser("movie", "Enter Movie ID to update: ");
-            _logger.LogInformation("User submitted movieID: {movieID}", id);
+            _logger.LogInformation("\nUser submitted movieID: {movieID}", id);
 
             _logger.LogInformation($"Searching Library...");
             var movie = _repository.GetMovieById(id);
 
             if (movie == null)
             {
-
-                _logger.LogInformation("No movie found with ID: {movieID}", id);
+                _logger.LogError("\nNo movie found with ID: {movieID}", id);
                 _outputService.WriteLine($"No movie found with ID: {id}");
 
-                _logger.LogInformation("Returning to Menu...");
+                _logger.LogInformation("\nReturning to Menu...");
                 return;
             }
 
-            _logger.LogInformation("Found {movie}", movie);
+            _logger.LogInformation("\nFound {movie}", movie);
             _outputService.WriteLine(movie.ToString());
 
             string title = "";
             do
             {
-                title = GetTitleFromUser();
+                _outputService.Write("Enter New Title: ");
+                title = _inputService.ReadLine();
+                _logger.LogInformation("\nUser submitted Title: \"{title}\"", title);
+
             } while (title == "");
 
 
             var releaseDate = GetReleaseDateFromUser("Update Release Date (MM/DD/YYYY): ");
             var releaseDateString = releaseDate.ToString("MM/dd/yyyy");
-            _logger.LogInformation("User submitted ReleaseDate: {releaseDateString}", releaseDateString);
+            _logger.LogInformation("\nUser submitted ReleaseDate: {releaseDateString}", releaseDateString);
             if (releaseDate > DateTime.UtcNow)
             {
                 releaseDate = movie.ReleaseDate;
-                _logger.LogInformation("Invalid ReleaseDate. Defaulting to original: {releaseDateString}", releaseDateString);
+                _logger.LogError("\nInvalid ReleaseDate. Defaulting to original: {releaseDateString}", releaseDateString);
             }
 
-            _logger.LogInformation("Pulling list of Genres associated with this Movie");
+            _logger.LogInformation("\nPulling list of Genres associated with this Movie");
             var genres = movie.MovieGenres.Select(x => x.Genre).ToList();
             var genresString = string.Join(", ", genres.Select(x => x.Name));
 
@@ -213,7 +217,7 @@ namespace MovieLibrary.Dao
             _outputService.WriteLine(genresString);
             _logger.LogInformation(genresString);
 
-            _logger.LogInformation("Pulling list of all Genres in the Library");
+            _logger.LogInformation("\nPulling list of all Genres in the Library");
             var validGenres = _repository.GetAllGenres().ToList();
 
 
@@ -232,12 +236,12 @@ namespace MovieLibrary.Dao
                     input = _inputService.ReadLine();
                     if (genres.Where(x => x.Name == input).IsNullOrEmpty())
                     {
-                        _logger.LogInformation("User tried to remove an invalid Genre: {input}", input);
+                        _logger.LogError("\nUser tried to remove an invalid Genre: {input}", input);
                         _outputService.WriteLine($"{input} is not a valid genre associated with {movie.Title}");
                     }
                     else
                     {
-                        _logger.LogInformation("Genre added to list for removal from this Movie: {input}", input);
+                        _logger.LogInformation("\nGenre added to list for removal from this Movie: {input}", input);
                         genresToRemove.Add(input);
                     }
                 } while (genres.Where(x => x.Name == input).IsNullOrEmpty());
@@ -249,7 +253,7 @@ namespace MovieLibrary.Dao
             var genresAvailableToAdd = validGenres.Except(genres);
             var genresAvailableString = string.Join(", ", genresAvailableToAdd.Select(x => x.Name));
             _outputService.WriteLine($"Other genres: {genresAvailableString}");
-            _logger.LogInformation("Genres available to add: {genresAvailableString}", genresAvailableString);
+            _logger.LogInformation("\nGenres available to add: {genresAvailableString}", genresAvailableString);
 
             _outputService.Write("Enter Y to add a Genre: ");
             input = _inputService.ReadLine();
@@ -261,12 +265,12 @@ namespace MovieLibrary.Dao
                     input = _inputService.ReadLine();
                     if (genresAvailableToAdd.Where(x => x.Name == input).IsNullOrEmpty())
                     {
-                        _logger.LogInformation("User tried to add an invalid Genre: {input}", input);
+                        _logger.LogError("\nUser tried to add an invalid Genre: {input}", input);
                         _outputService.WriteLine($"{input} is not a valid genre");
                     }
                     else
                     {
-                        _logger.LogInformation("Genre added to list to be added from this Movie: {input}", input);
+                        _logger.LogInformation("\nGenre added to list to be added from this Movie: {input}", input);
                         genresToAdd.Add(input);
                     }
                 } while (genresAvailableToAdd.Where(x => x.Name == input).IsNullOrEmpty());
@@ -275,30 +279,30 @@ namespace MovieLibrary.Dao
                 input = _inputService.ReadLine();
             }
 
-            _logger.LogInformation("Sending updated Movie details to the Library...");
+            _logger.LogInformation("\nSending updated Movie details to the Library...");
             _repository.UpdateMovie(movie, title, genresToRemove, genresToAdd, releaseDate);
 
             _outputService.WriteLine($"Movie updated successfully");
             _logger.LogInformation($"Movie updated successfully");
 
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
         }
         public void DeleteMovie()
         {
-            _logger.LogInformation("Deleting a Movie...");
+            _logger.LogInformation("\nDeleting a Movie...");
 
             var id = GetIDFromUser("movie", "Enter Movie ID to delete: ");
-            _logger.LogInformation("User submitted movieID: {movieID}", id);
+            _logger.LogInformation("\nUser submitted movieID: {movieID}", id);
 
             _logger.LogInformation($"Searching Library...");
             var movie = _repository.GetMovieById(id);
 
             if (movie == null)
             {
-                _logger.LogInformation("No movie found with ID: {movieID}", id);
+                _logger.LogError("\nNo movie found with ID: {movieID}", id);
                 _outputService.WriteLine($"No movie found with ID: {id}");
 
-                _logger.LogInformation("Returning to Menu...");
+                _logger.LogInformation("\nReturning to Menu...");
                 return;
             }
 
@@ -308,28 +312,28 @@ namespace MovieLibrary.Dao
 
             if (input != "" && input.ToLower() == "y")
             {
-                _logger.LogInformation("User confirmed delete request.\nDeleting...");
+                _logger.LogInformation("\nUser confirmed delete request.\nDeleting...");
                 _repository.DeleteMovie(movie);
 
                 _outputService.WriteLine($"Deleted Movie# {id}");
-                _logger.LogInformation("Successfully Deleted Movie#{movieID}", id);
+                _logger.LogInformation("\nSuccessfully Deleted Movie#{movieID}", id);
             }
             else
             {
-                _logger.LogInformation("User did not confirm deletion.\nMovie#{movieID} will not be deleted.", id);
+                _logger.LogInformation("\nUser did not confirm deletion.\nMovie#{movieID} will not be deleted.", id);
             }
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
         }
         public void AddUser()
         {
-            _logger.LogInformation("Adding a User...");
+            _logger.LogInformation("\nAdding a User...");
 
             var age = GetAgeFromUser();
-            _logger.LogInformation("User submitted Age: {age}", age);
+            _logger.LogInformation("\nUser submitted Age: {age}", age);
 
 
             var gender = GetGenderCodeFromUser();
-            _logger.LogInformation("User submitted Gender: {gender}", gender);
+            _logger.LogInformation("\nUser submitted Gender: {gender}", gender);
 
             string zipcode = "";
             int foo;
@@ -339,90 +343,91 @@ namespace MovieLibrary.Dao
                 zipcode = _inputService.ReadLine();
                 if (zipcode.Length != 5 && Int32.TryParse(zipcode, out foo))
                 {
+                    _logger.LogError("\nUser submitted invalid Zipcode: {zipcode}", zipcode);
                     _outputService.WriteLine($"{zipcode} is invalid");
                 }
             } while (zipcode.Length != 5 && Int32.TryParse(zipcode, out foo));
-            _logger.LogInformation("User submitted ZipCode: {zipcode}", zipcode);
+            _logger.LogInformation("\nUser submitted ZipCode: {zipcode}", zipcode);
 
             var occupations = _repository.GetAllOccupations();
             var validOccsString = string.Join(", ", occupations.Select(x => x.Name));
-            _logger.LogInformation("Valid Occupations: {validOccsString}\n", validOccsString);
+            _logger.LogInformation("\nValid Occupations: {validOccsString}\n", validOccsString);
             _outputService.WriteLine($"Occupations: {validOccsString}\n");
 
             string userOccupation = "";
             _outputService.Write("Enter the Users Occupation: ");
             userOccupation = _inputService.ReadLine();
             var occupation = occupations.Where(x => x.Name == userOccupation).SingleOrDefault();
-            if (occupation == null) { occupation = occupations.Where(x => x.Name == "None").Single(); }
+            if (occupation == null) {
+                _logger.LogError("\nUser submitted invalid Occupation: {userOccupation}.\nDefaulting to None.", userOccupation);
+                occupation = occupations.Where(x => x.Name == "None").Single(); 
+            }
 
-            _logger.LogInformation("User submitted Occupation: {userOccupation}", userOccupation);
+            _logger.LogInformation("\nUser submitted Occupation: {userOccupation}", userOccupation);
 
             var id = _repository.AddUser(age, gender, zipcode, occupation);
-            _logger.LogInformation("Added new user. ID: {id}", id);
+            _logger.LogInformation("\nAdded new user. ID: {id}", id);
             _outputService.WriteLine($"Added new user. ID: {id}");
 
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
         }
         public void DisplayUser()
         {
-            _logger.LogInformation("Displaying a User");
+            _logger.LogInformation("\nDisplaying a User");
 
             var id = GetIDFromUser("user", "Enter User ID to display: ");
-            _logger.LogInformation("User submitted UserID: {id}", id);
+            _logger.LogInformation("\nUser submitted UserID: {id}", id);
 
-            _logger.LogInformation("Searching Library...");
+            _logger.LogInformation("\nSearching Library...");
             var user = _repository.GetUserByID(id);
             if (user == null)
             {
-                _logger.LogInformation("No user found with UserId: {id}", id);
+                _logger.LogError("\nNo user found with UserId: {id}", id);
                 _outputService.WriteLine($"No user found with UserId: {id}");
             }
             else
             {
-                _logger.LogInformation("User found. Displaying details...");
+                _logger.LogInformation("\nUser found. Displaying details...");
                 _outputService.WriteLine($"User found. Details: \nID: {user.Id} | Age: {user.Age} | Gender: {user.Gender} | ZipCode: {user.ZipCode} | Occupation: | {user.Occupation.Name}");
 
-                if (user.UserMovies.Any())
-                {
-                    var userMovies = user.UserMovies.ToList();
-                    _outputService.WriteLine($"\tThere are {userMovies.Count} reviews associated with this user.");
-                }
+                var count = user.UserMovies != null ? user.UserMovies.ToList().Count() : 0;
+                _outputService.WriteLine($"\t{count} review(s) associated with this user.");
             }
 
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
         }
         public void UserRate()
         {
-            _logger.LogInformation("Creating a new Rating by a User");
+            _logger.LogInformation("\nCreating a new Rating by a User");
 
             var id = GetIDFromUser("user", "Enter ID of the User adding a new Rating: ");
-            _logger.LogInformation("User submitted UserID: {movieID}", id);
+            _logger.LogInformation("\nUser submitted UserID: {movieID}", id);
 
-            _logger.LogInformation("Searching Library...");
+            _logger.LogInformation("\nSearching Library...");
             var user = _repository.GetUserByID(id);
             if (user == null)
             {
                 _outputService.WriteLine($"No User found with ID: {id}");
-                _logger.LogInformation("No User found with ID: {movieID}", id);
-                _logger.LogInformation("Returning to Menu...");
+                _logger.LogError("\nNo User found with ID: {movieID}", id);
+                _logger.LogInformation("\nReturning to Menu...");
                 return;
             }
-            _logger.LogInformation("Found User with ID: {id}", id);
+            _logger.LogInformation("\nFound User with ID: {id}", id);
 
 
             id = GetIDFromUser("movie", "Enter ID of the existing Movie being Rated: ");
-            _logger.LogInformation("User submitted MovieID: {movieID}", id);
+            _logger.LogInformation("\nUser submitted MovieID: {movieID}", id);
 
-            _logger.LogInformation("Searching Library...");
+            _logger.LogInformation("\nSearching Library...");
             var movie = _repository.GetMovieById(id);
             if (movie == null)
             {
                 _outputService.WriteLine($"No Movie found with ID: {id}");
-                _logger.LogInformation("No Movie found with ID: {movieID}", id);
-                _logger.LogInformation("Returning to Menu...");
+                _logger.LogError("\nNo Movie found with ID: {movieID}", id);
+                _logger.LogInformation("\nReturning to Menu...");
                 return;
             }
-            _logger.LogInformation("Found Movie with ID: {movieID}", id);
+            _logger.LogInformation("\nFound Movie with ID: {movieID}", id);
 
             string input = "";
             long rating = 0;
@@ -432,23 +437,23 @@ namespace MovieLibrary.Dao
                 input = _inputService.ReadLine();
 
             } while (long.TryParse(input, out rating) && (rating < 1 || rating > 5));
-            _logger.LogInformation("User submitted Rating: {rating}", rating);
+            _logger.LogInformation("\nUser submitted Rating: {rating}", rating);
 
             DateTime ratingTime = DateTime.UtcNow;
-            _logger.LogInformation("RatedAt: {ratingTime}", ratingTime);
+            _logger.LogInformation("\nRatedAt: {ratingTime}", ratingTime);
 
-            _logger.LogInformation("Sending UserRating to Library...");
+            _logger.LogInformation("\nSending UserRating to Library...");
             var ratingId = _repository.AddUserRating(user, movie, rating, ratingTime);
-            _logger.LogInformation("Added UserRating to the Library.  ID#:{ratingId}", ratingId);
+            _logger.LogInformation("\nAdded UserRating to the Library.  ID#:{ratingId}", ratingId);
 
             _outputService.WriteLine($"Added UserRating to the Library.");
             _outputService.WriteLine($"\tUser: {user.Id}\n\tMovie: {movie.Id} | {movie.Title} \n\tRating: {rating} | RatingID: {ratingId}");
 
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
         }
         public void ListTopRated()
         {
-            _logger.LogInformation("Preparing to search for Top Rated Movies by a category");
+            _logger.LogInformation("\nPreparing to search for Top Rated Movies by a category");
 
             string input;
             do
@@ -464,19 +469,19 @@ namespace MovieLibrary.Dao
                 switch (input.ToLower())
                 {
                     case "1":
-                        _logger.LogInformation("User selected Top Rated Movies by Age Bracket");
+                        _logger.LogInformation("\nUser selected Top Rated Movies by Age Bracket");
                         TopRatedByAgeBracket();
                         return;
                     case "2":
-                        _logger.LogInformation("User selected Top Rated Movies by Occupation");
+                        _logger.LogInformation("\nUser selected Top Rated Movies by Occupation");
                         TopRatedByOccupation();
                         return;
                     case "3":
-                        _logger.LogInformation("User selected Top Rated Movies Reviewed in a Given Year");
+                        _logger.LogInformation("\nUser selected Top Rated Movies Reviewed in a Given Year");
                         TopRatedByYearReviewed();
                         return;
                     case "4":
-                        _logger.LogInformation("User selected Top Rated Movies Released in a Given Year");
+                        _logger.LogInformation("\nUser selected Top Rated Movies Released in a Given Year");
                         TopRatedByYearReleased();
                         return;
 
@@ -484,13 +489,13 @@ namespace MovieLibrary.Dao
                 }
             } while (input != "x");
 
-            _logger.LogInformation("Returning to Menu...");
+            _logger.LogInformation("\nReturning to Menu...");
         }
 
 
         private void TopRatedByAgeBracket()
         {
-            _logger.LogInformation("Searching for Top Rated Movie for each Age Bracket");
+            _logger.LogInformation("\nSearching for Top Rated Movie for each Age Bracket");
 
             int[] ageBracketBounds = new int[]
             {
@@ -498,7 +503,7 @@ namespace MovieLibrary.Dao
             };
             int brackets = ageBracketBounds.Length;
 
-            _logger.LogInformation("Gathering the list of all UserMovie records from the Library...");
+            _logger.LogInformation("\nGathering the list of all UserMovie records from the Library...");
             var userMovies = _repository.GetUserMovies();
 
             int lowerBound = 0;
@@ -520,7 +525,7 @@ namespace MovieLibrary.Dao
 
                 if (topUserMoviebyBracket == null)
                 {
-                    _logger.LogInformation("No movies found for age bracket {lowerBound} - {upperBound}", lowerBound, upperBound);
+                    _logger.LogInformation("\nNo movies found for age bracket {lowerBound} - {upperBound}", lowerBound, upperBound);
                     _outputService.WriteLine("No movies found for this age bracket.");
                 }
                 else
@@ -528,7 +533,7 @@ namespace MovieLibrary.Dao
                     _outputService.WriteLine($"Highest Rating: {topUserMoviebyBracket.Rating}");
                     var movieID = topUserMoviebyBracket.Movie.Id;
                     _outputService.WriteLine($"First Result:\n\tID: {movieID} | Title: {topUserMoviebyBracket.Movie.Title}\n");
-                    _logger.LogInformation("{lowerBound} - {upperBound} | Highest Rated Movie found: ID:{movieID}", lowerBound, upperBound, movieID);
+                    _logger.LogInformation("\n{lowerBound} - {upperBound} | Highest Rated Movie found: ID:{movieID}", lowerBound, upperBound, movieID);
                 }
 
 
@@ -540,16 +545,16 @@ namespace MovieLibrary.Dao
                 }
             }
 
-            _logger.LogInformation("Finished searching for Top Rated Movie for each Age Bracket");
+            _logger.LogInformation("\nFinished searching for Top Rated Movie for each Age Bracket");
         }
         private void TopRatedByOccupation()
         {
-            _logger.LogInformation("Searching for Top Rated Movie for each Occupation");
+            _logger.LogInformation("\nSearching for Top Rated Movie for each Occupation");
 
-            _logger.LogInformation("Gathering the list of all UserMovie records from the Library...");
+            _logger.LogInformation("\nGathering the list of all UserMovie records from the Library...");
             var userRatings = _repository.GetUserMovies();
 
-            _logger.LogInformation("Gathering the list of all Occupation records from the Library...");
+            _logger.LogInformation("\nGathering the list of all Occupation records from the Library...");
             var occupations = _repository.GetAllOccupations();
 
             foreach (var occupation in occupations)
@@ -566,7 +571,7 @@ namespace MovieLibrary.Dao
                 var occName = occupation.Name;
                 if (topUserMovieByOccupation == null)
                 {
-                    _logger.LogInformation("No movies found for Occupation: {occName}", occName);
+                    _logger.LogError("\nNo movies found for Occupation: {occName}", occName);
                     _outputService.WriteLine("No movies found reviewed by users of this occupation.");
                 }
                 else
@@ -575,22 +580,22 @@ namespace MovieLibrary.Dao
                     var movieId = topUserMovieByOccupation.Movie.Id;
                     _outputService.WriteLine($"Highest Rating: {topUserMovieByOccupation.Rating}");
                     _outputService.WriteLine($"First Result:\n\tID: {movieId} | Title: {topUserMovieByOccupation.Movie.Title}\n");
-                    _logger.LogInformation("Occupation: {occName} | Highest Rated Movie found: ID:{movieID}", occName, movieId);
+                    _logger.LogInformation("\nOccupation: {occName} | Highest Rated Movie found: ID:{movieID}", occName, movieId);
                 }
 
                 _outputService.WriteLine("See next Occupation?");
                 if (!ContinueDisplaying()) return;
             }
-            _logger.LogInformation("Finished searching for Top Rated Movie for each Occupation");
+            _logger.LogInformation("\nFinished searching for Top Rated Movie for each Occupation");
         }
         private void TopRatedByYearReviewed()
         {
-            _logger.LogInformation("Searching for Top Rated Movie by Year");
+            _logger.LogInformation("\nSearching for Top Rated Movie by Year");
 
             var year = GetYearFromUser();
-            _logger.LogInformation("User submitted Year: {year}", year);
+            _logger.LogInformation("\nUser submitted Year: {year}", year);
 
-            _logger.LogInformation("Gathering the list of all UserMovie records from the Library...");
+            _logger.LogInformation("\nGathering the list of all UserMovie records from the Library...");
             var userRatings = _repository.GetUserMovies();
 
 
@@ -602,7 +607,7 @@ namespace MovieLibrary.Dao
 
             if (topRatedOfTheYear == null)
             {
-                _logger.LogInformation("No user ratings found from {year}", year);
+                _logger.LogError("\nNo user ratings found from {year}", year);
                 _outputService.WriteLine($"No user ratings found from {year}");
             }
             else
@@ -610,17 +615,17 @@ namespace MovieLibrary.Dao
                 var movieId = topRatedOfTheYear.Movie.Id;
                 _outputService.WriteLine($"Highest Rating of {year}: {topRatedOfTheYear.Rating}");
                 _outputService.WriteLine($"First Result:\n\tID: {movieId} | Title: {topRatedOfTheYear.Movie.Title}\n");
-                _logger.LogInformation("Year: {year}s | Highest Rated Movie found: ID:{movieID}", year, movieId);
+                _logger.LogInformation("\nYear: {year}s | Highest Rated Movie found: ID:{movieID}", year, movieId);
             }
         }
         private void TopRatedByYearReleased()
         {
-            _logger.LogInformation("Searching for Top Rated Movie by Year");
+            _logger.LogInformation("\nSearching for Top Rated Movie by Year");
 
             var year = GetYearFromUser();
-            _logger.LogInformation("User submitted Year: {year}", year);
+            _logger.LogInformation("\nUser submitted Year: {year}", year);
 
-            _logger.LogInformation("Gathering the list of all UserMovie records from the Library...");
+            _logger.LogInformation("\nGathering the list of all UserMovie records from the Library...");
             var userRatings = _repository.GetUserMovies();
 
             var topRatedOfTheYear = userRatings
@@ -631,15 +636,15 @@ namespace MovieLibrary.Dao
 
             if (topRatedOfTheYear == null)
             {
-                _logger.LogInformation("No user ratings found from {year}", year);
-                _outputService.WriteLine($"No user ratings found from {year}");
+                _logger.LogError("\nNo user ratings found for movies released in {year}", year);
+                _outputService.WriteLine($"No user ratings found for movies released in {year}");
             }
             else
             {
                 var movieId = topRatedOfTheYear.Movie.Id;
                 _outputService.WriteLine($"Highest Rating of {year}: {topRatedOfTheYear.Rating}");
                 _outputService.WriteLine($"First Result:\n\tID: {movieId} | Title: {topRatedOfTheYear.Movie.Title}\n");
-                _logger.LogInformation("Year: {year}s | Highest Rated Movie found: ID:{movieID}", year, movieId);
+                _logger.LogInformation("\nYear: {year}s | Highest Rated Movie found: ID:{movieID}", year, movieId);
             }
         }
         private int GetYearFromUser()
@@ -672,7 +677,7 @@ namespace MovieLibrary.Dao
                 }
                 if (age < 1 || age > 125)
                 {
-                    _logger.LogInformation("User submitted invalid Age: {input}", input);
+                    _logger.LogError("\nUser submitted invalid Age: {input}", input);
                     _outputService.WriteLine($"{input} is invalid. (1-125)");
                 }
             } while (age < 1 || age > 125);
@@ -695,7 +700,7 @@ namespace MovieLibrary.Dao
                 }
                 else
                 {
-                    _logger.LogInformation("User submitted invalid Gender code {input}", input);
+                    _logger.LogError("\nUser submitted invalid Gender code {input}", input);
                     _outputService.WriteLine($"{input} is not valid in this library.");
                 }
             } while (!valid);
@@ -706,16 +711,16 @@ namespace MovieLibrary.Dao
         {
             _outputService.Write("Enter Title: ");
             var title = _inputService.ReadLine();
-            _logger.LogInformation("User submitted Title: \"{title}\"", title);
+            _logger.LogInformation("\nUser submitted Title: \"{title}\"", title);
 
-            _logger.LogInformation("Confirming this Title does not exist yet...");
+            _logger.LogInformation("\nConfirming this Title does not exist yet...");
             var searchResults = _repository.Search(title);
             var duplicateEntries = searchResults.Where(x => x.Title == title);
             if (duplicateEntries.Any())
             {
                 //Error - duplicate entry
-                _logger.LogInformation("Invalid Title - identical to existing entry");
-                _logger.LogInformation(duplicateEntries.First().ToString());
+                _logger.LogError("\nInvalid Title - identical to existing entry");
+                _logger.LogError(duplicateEntries.First().ToString());
 
                 _outputService.WriteLine("Invalid Title - identical to existing entry");
                 _outputService.WriteLine(duplicateEntries.First().ToString());
@@ -743,7 +748,7 @@ namespace MovieLibrary.Dao
         }
         private DateTime GetReleaseDateFromUser(string prompt)
         {
-            _logger.LogInformation("Requesting ReleaseDate from User...");
+            _logger.LogInformation("\nRequesting ReleaseDate from User...");
             _outputService.Write(prompt);
             var input = _inputService.ReadLine();
             var exit = false;
@@ -757,7 +762,7 @@ namespace MovieLibrary.Dao
                 }
                 else
                 {
-                    _logger.LogInformation("User submitted invalid release date format:  \"{input}\"", input);
+                    _logger.LogError("\nUser submitted invalid release date format:  \"{input}\"", input);
                     _outputService.WriteLine($"{input} is invalid.");
                     _outputService.Write("Please try again using the MM/DD/YYYY format, or press q to cancel: ");
                     input = _inputService.ReadLine();
@@ -771,7 +776,7 @@ namespace MovieLibrary.Dao
         }
         private int GetIDFromUser(string type, string prompt)
         {
-            _logger.LogInformation("Requesting {type}ID from User...", type);
+            _logger.LogInformation("\nRequesting {type}ID from User...", type);
             var id = -1;
             string input;
             do
@@ -788,7 +793,7 @@ namespace MovieLibrary.Dao
                 }
                 if (id < 0)
                 {
-                    _logger.LogInformation("User submitted invalid {type}ID: {input}", type, input);
+                    _logger.LogError("\nUser submitted invalid {type}ID: {input}", type, input);
                     _outputService.WriteLine($"{input} is invalid.");
                 }
             } while (id < 0);

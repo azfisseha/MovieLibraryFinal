@@ -30,45 +30,45 @@ namespace MovieLibrary.Services
                 switch (selection) 
                 {
                     case MenuOptions.SearchMovie:
-                        _logger.LogInformation("Searching for a Movie");
+                        _logger.LogInformation("\nSearching for a Movie");
                         _movieRepository.SearchMovie();
                         break;
                     case MenuOptions.AddMovie:
-                        _logger.LogInformation("Adding a new Movie");
+                        _logger.LogInformation("\nAdding a new Movie");
                         _movieRepository.AddMovie();
                         break;
                     case MenuOptions.ListMovies:
-                        _logger.LogInformation("Listing Movies from database");
+                        _logger.LogInformation("\nListing Movies from database");
                         _movieRepository.ListMovies();
                         break;
                     case MenuOptions.UpdateMovie:
-                        _logger.LogInformation("Updating an existing Movie");
+                        _logger.LogInformation("\nUpdating an existing Movie");
                         _movieRepository.UpdateMovie();
                         break;
                     case MenuOptions.DeleteMovie:
-                        _logger.LogInformation("Deleting a Movie");
+                        _logger.LogInformation("\nDeleting a Movie");
                         _movieRepository.DeleteMovie();
                         break;
                     case MenuOptions.AddUser:
-                        _logger.LogInformation("Adding a User");
+                        _logger.LogInformation("\nAdding a User");
                         _movieRepository.AddUser();
                         break;
                     case MenuOptions.DisplayUser:
-                        _logger.LogInformation("Displaying a User");
+                        _logger.LogInformation("\nDisplaying a User");
                         _movieRepository.DisplayUser();
                         break;
                     case MenuOptions.UserRate:
-                        _logger.LogInformation("Submitting a User Rating");
+                        _logger.LogInformation("\nSubmitting a User Rating");
                         _movieRepository.UserRate();
                         break;
                     case MenuOptions.ListTopRated:
-                        _logger.LogInformation("Listing a Top Rated Movie");
+                        _logger.LogInformation("\nListing a Top Rated Movie");
                         _movieRepository.ListTopRated();
                         break;
                 }
             } while (selection != MenuOptions.Exit);
 
-            _logger.LogInformation("User has exited the program.\nGoodbye.");
+            _logger.LogInformation("\nUser has exited the program.\nGoodbye.");
 
         }
     }
